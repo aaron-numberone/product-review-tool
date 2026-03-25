@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>产品立项评审工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Inter','Noto Sans SC',sans-serif;font-size:14px;background:#0e1117;color:#e2e8f0}
+:root{--bg0:#0e1117;--bg1:#161b27;--bg2:#1e2535;--bg3:#252d3d;--border:#2a3448;--border2:#3a4560;--text1:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--primary:#3b82f6;--primary-dark:#2563eb;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--radius:10px;--radius-sm:7px;}
+body{display:flex;flex-direction:column;min-height:100vh;}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--bg1);border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{font-size:28px;}
+.logo-name{font-size:16px;font-weight:700;color:var(--text1);}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.app-badge{background:rgba(59,130,246,0.15);color:var(--primary);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(59,130,246,0.3);}
+.app-main{flex:1;overflow-y:auto;padding:28px 32px;}
+.page-header{margin-bottom:24px;}
+.page-title{font-size:22px;font-weight:700;color:var(--text1);margin-bottom:4px;}
+.page-desc{font-size:13px;color:var(--text3);}
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;font-family:inherit;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-outline:hover{background:var(--bg2);color:var(--text1);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.select-md{background:var(--bg2);border:1px solid var(--border);color:var(--text1);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;font-family:inherit;outline:none;width:100%;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);color:var(--text1);padding:10px 20px;border-radius:var(--radius-sm);font-size:13px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;border:1px solid var(--border2);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.warn{background:rgba(245,158,11,0.15);border-color:var(--yellow);color:var(--yellow);}
+/* ===== Product Review Tool ===== */
+
+.review-layout {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.review-input-panel {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+}
+
+.input-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg0);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+.input-tab {
+  flex: 1;
+  padding: 8px 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.input-tab:hover { color: var(--text1); background: var(--bg2); }
+.input-tab.active {
+  background: var(--bg2);
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.input-section { display: flex; flex-direction: column; gap: 14px; }
+.input-section.hidden { display: none; }
+.input-group { display: flex; flex-direction: column; gap: 6px; }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.input-label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.3px; }
+.label-hint { font-weight: 400; color: var(--text3); }
+
+.review-input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text1);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.review-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.review-input::placeholder { color: var(--text3); }
+
+.review-textarea {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text1);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+}
+.review-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.review-textarea::placeholder { color: var(--text3); }
+
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 36px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg0);
+  user-select: none;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--primary);
+  background: rgba(59,130,246,0.05);
+}
+.upload-zone-sm { padding: 20px 16px; }
+.upload-icon { font-size: 40px; margin-bottom: 10px; }
+.upload-title { font-size: 14px; font-weight: 600; color: var(--text1); margin-bottom: 6px; }
+.upload-hint { font-size: 12px; color: var(--text3); }
+
+.file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.file-icon { font-size: 20px; flex-shrink: 0; }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 12px; font-weight: 500; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-size { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.file-remove {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: all 0.15s; flex-shrink: 0;
+}
+.file-remove:hover { background: rgba(239,68,68,0.15); color: var(--red); }
+
+.review-options {
+  background: var(--bg0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+.options-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.option-check {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--text2); cursor: pointer;
+  padding: 4px 6px; border-radius: 4px; transition: background 0.15s;
+}
+.option-check:hover { background: var(--bg2); color: var(--text1); }
+.option-check input[type=checkbox] { accent-color: var(--primary); cursor: pointer; }
+
+.review-actions { display: flex; gap: 10px; padding-top: 4px; }
+.btn-review {
+  flex: 1; justify-content: center;
+  padding: 11px; font-size: 14px; font-weight: 600;
+  position: relative; overflow: hidden;
+}
+.btn-review:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Result Panel */
+.review-result-panel {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 500px;
+  overflow: hidden;
+}
+
+.result-placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 40px; text-align: center; min-height: 500px;
+}
+.result-placeholder.hidden { display: none; }
+.placeholder-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.7; }
+.placeholder-title { font-size: 18px; font-weight: 700; color: var(--text1); margin-bottom: 8px; }
+.placeholder-desc { font-size: 13px; color: var(--text3); line-height: 1.7; max-width: 340px; margin-bottom: 28px; }
+.placeholder-features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 320px; }
+.feature-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  font-size: 12px; color: var(--text2); text-align: left;
+}
+
+/* Loading */
+.result-loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 40px; min-height: 500px;
+}
+.result-loading.hidden { display: none; }
+.result-content.hidden { display: none; }
+
+.loading-animation { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.loading-brain { font-size: 48px; animation: brainPulse 1.5s ease-in-out infinite; }
+@keyframes brainPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 14px rgba(59,130,246,0.7)); }
+}
+.loading-bars { display: flex; align-items: flex-end; gap: 5px; height: 40px; }
+.loading-bar {
+  width: 6px; background: var(--primary); border-radius: 3px;
+  animation: barBounce 0.9s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+@keyframes barBounce {
+  0%, 100% { height: 12px; opacity: 0.4; }
+  50% { height: 36px; opacity: 1; }
+}
+.loading-title { font-size: 16px; font-weight: 600; color: var(--text1); margin-bottom: 24px; }
+.loading-steps { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+.loading-step {
+  font-size: 13px; color: var(--text3); padding: 8px 14px;
+  border-radius: var(--radius-sm); background: var(--bg0);
+  border: 1px solid var(--border); transition: all 0.4s;
+}
+.loading-step.active { color: var(--primary); border-color: var(--primary); background: rgba(59,130,246,0.08); }
+.loading-step.done { color: var(--green); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.06); }
+
+/* Result Content */
+.result-content { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.result-product-name { font-size: 18px; font-weight: 700; color: var(--text1); }
+.result-meta { display: flex; align-items: center; gap: 10px; }
+.result-time { font-size: 11px; color: var(--text3); }
+
+/* Score */
+.score-overview {
+  display: grid; grid-template-columns: 160px 1fr; gap: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.total-score-card {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px;
+  border-right: 1px solid var(--border); padding-right: 20px;
+}
+.total-score-label { font-size: 11px; color: var(--text3); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+.total-score-value { font-size: 56px; font-weight: 800; line-height: 1; color: var(--primary); }
+.total-score-max { font-size: 13px; color: var(--text3); }
+.score-verdict { margin-top: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.score-verdict.pass { background: rgba(16,185,129,0.15); color: var(--green); }
+.score-verdict.watch { background: rgba(245,158,11,0.15); color: var(--yellow); }
+.score-verdict.fail { background: rgba(239,68,68,0.15); color: var(--red); }
+
+.score-dimensions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.dim-score { display: flex; flex-direction: column; gap: 6px; }
+.dim-name { font-size: 11px; color: var(--text3); font-weight: 500; }
+.dim-bar-wrap { height: 6px; background: var(--bg0); border-radius: 3px; overflow: hidden; }
+.dim-bar { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+.dim-val { font-size: 12px; font-weight: 700; color: var(--text1); }
+
+/* Decision */
+.decision-card {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 16px 20px; border-radius: var(--radius); border: 1px solid;
+}
+.decision-card.approve { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
+.decision-card.conditional { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+.decision-card.reject { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); }
+.decision-icon { font-size: 32px; flex-shrink: 0; margin-top: 2px; }
+.decision-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.decision-card.approve .decision-title { color: var(--green); }
+.decision-card.conditional .decision-title { color: var(--yellow); }
+.decision-card.reject .decision-title { color: var(--red); }
+.decision-desc { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+/* Analysis */
+.analysis-sections { display: flex; flex-direction: column; gap: 10px; }
+.analysis-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.analysis-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer; transition: background 0.15s; user-select: none;
+}
+.analysis-header:hover { background: var(--bg3); }
+.analysis-header-left { display: flex; align-items: center; gap: 10px; }
+.analysis-emoji { font-size: 18px; }
+.analysis-name { font-size: 13px; font-weight: 600; color: var(--text1); }
+.analysis-score-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.analysis-toggle { font-size: 12px; color: var(--text3); transition: transform 0.2s; }
+.analysis-toggle.open { transform: rotate(180deg); }
+.analysis-body { padding: 0 16px 14px; font-size: 13px; color: var(--text2); line-height: 1.8; display: none; }
+.analysis-body.open { display: block; }
+.analysis-body ul { padding-left: 18px; margin-top: 6px; }
+.analysis-body li { margin-bottom: 4px; }
+
+/* Risks */
+.risks-section { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius); padding: 16px 20px; }
+.section-title { font-size: 13px; font-weight: 700; color: var(--text1); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.risk-list { display: flex; flex-direction: column; gap: 8px; }
+.risk-item { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: var(--text2); line-height: 1.6; }
+.risk-level { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-top: 1px; }
+.risk-level.high { background: rgba(239,68,68,0.2); color: var(--red); }
+.risk-level.mid { background: rgba(245,158,11,0.2); color: var(--yellow); }
+.risk-level.low { background: rgba(16,185,129,0.2); color: var(--green); }
+
+/* Actions */
+.actions-section { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius); padding: 16px 20px; }
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-item { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: var(--text2); line-height: 1.6; }
+.action-num {
+  flex-shrink: 0; width: 20px; height: 20px; background: var(--primary);
+  color: #fff; font-size: 10px; font-weight: 700; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px;
+}
+
+@media (max-width: 1100px) {
+  .review-layout { grid-template-columns: 1fr; }
+  .review-input-panel { position: static; }
+  .score-dimensions { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .score-overview { grid-template-columns: 1fr; }
+  .total-score-card { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 16px; }
+  .options-grid, .input-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="logo"><span class="logo-icon">🧠</span><div><div class="logo-name">产品立项评审工具</div><div class="logo-sub">Product Review Assistant</div></div></div>
+  <span class="app-badge">AI Powered</span>
+</header>
+<main class="app-main">
+  <div class="page-header"><div class="page-title">产品立项评审</div><div class="page-desc">通过文字描述或上传文档，快速获取 AI 驱动的产品立项评审报告</div></div>
+  <div class="review-layout">
+    <div class="review-input-panel">
+      <div class="input-tabs">
+        <button class="input-tab active" onclick="switchInputTab('text',this)">✏️ 文字描述</button>
+        <button class="input-tab" onclick="switchInputTab('file',this)">📎 上传文档</button>
+        <button class="input-tab" onclick="switchInputTab('both',this)">🔗 组合输入</button>
+      </div>
+      <div class="input-section" id="section-text">
+        <div class="input-group"><label class="input-label">产品名称</label><input type="text" class="review-input" id="product-name" placeholder="例如：智能家居语音控制器 Pro"></div>
+        <div class="input-group"><label class="input-label">产品描述 <span class="label-hint">（核心功能、目标用户、解决痛点）</span></label><textarea class="review-textarea" id="product-desc" rows="5" placeholder="请详细描述产品的核心功能、使用场景、目标用户群体，以及该产品主要解决的用户痛点..."></textarea></div>
+        <div class="input-row">
+          <div class="input-group"><label class="input-label">目标市场</label><select class="select-md" id="target-market"><option value="">请选择目标市场</option><option>国内 B2C</option><option>国内 B2B</option><option>海外 Amazon</option><option>海外 Shopify</option><option>线下零售</option><option>全渠道</option></select></div>
+          <div class="input-group"><label class="input-label">预计定价（元）</label><input type="number" class="review-input" id="target-price" placeholder="例如：299" min="0"></div>
+        </div>
+        <div class="input-group"><label class="input-label">主要竞品</label><input type="text" class="review-input" id="competitors" placeholder="例如：小米小爱同学、华为AI音箱、天猫精灵"></div>
+        <div class="input-group"><label class="input-label">立项背景与战略意图 <span class="label-hint">（可选）</span></label><textarea class="review-textarea" id="strategic-intent" rows="3" placeholder="描述立项背后的战略意图..."></textarea></div>
+      </div>
+      <div class="input-section hidden" id="section-file">
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">拖拽文件到此处，或点击上传</div>
+          <div class="upload-hint">支持 PDF、Word、Excel、TXT、Markdown，最大 20MB</div>
+          <input type="file" id="file-input" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md" onchange="handleFileSelect(event)">
+          <button class="btn btn-outline" style="margin-top:12px" onclick="event.stopPropagation();document.getElementById('file-input').click()">选择文件</button>
+        </div>
+        <div class="file-list" id="file-list"></div>
+        <div class="input-group" style="margin-top:12px"><label class="input-label">补充说明 <span class="label-hint">（可选）</span></label><textarea class="review-textarea" id="file-extra-note" rows="3" placeholder="补充文档未涵盖的信息，或指定重点评审方向..."></textarea></div>
+      </div>
+      <div class="input-section hidden" id="section-both">
+        <div class="input-group"><label class="input-label">产品名称</label><input type="text" class="review-input" id="both-product-name" placeholder="例如：智能家居语音控制器 Pro"></div>
+        <div class="input-group"><label class="input-label">文字描述</label><textarea class="review-textarea" id="both-product-desc" rows="4" placeholder="简要描述产品核心信息，文档将作为详细补充..."></textarea></div>
+        <div class="upload-zone upload-zone-sm" onclick="document.getElementById('file-input-both').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropBoth(event)">
+          <div class="upload-icon" style="font-size:28px">📎</div>
+          <div class="upload-title" style="font-size:13px">点击或拖拽上传补充文档</div>
+          <div class="upload-hint">支持 PDF、Word、Excel、TXT、Markdown</div>
+          <input type="file" id="file-input-both" style="display:none" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md" onchange="handleFileSelectBoth(event)">
+        </div>
+        <div class="file-list" id="file-list-both"></div>
+      </div>
+      <div class="review-options">
+        <div class="options-title">📋 评审维度</div>
+        <div class="options-grid">
+          <label class="option-check"><input type="checkbox" checked id="dim-market"> 市场机会分析</label>
+          <label class="option-check"><input type="checkbox" checked id="dim-compete"> 竞争格局评估</label>
+          <label class="option-check"><input type="checkbox" checked id="dim-tech"> 技术可行性</label>
+          <label class="option-check"><input type="checkbox" checked id="dim-business"> 商业模式</label>
+          <label class="option-check"><input type="checkbox" checked id="dim-risk"> 风险识别</label>
+          <label class="option-check"><input type="checkbox" checked id="dim-resource"> 资源匹配度</label>
+          <label class="option-check"><input type="checkbox" id="dim-legal"> 合规与法务</label>
+          <label class="option-check"><input type="checkbox" id="dim-supply"> 供应链评估</label>
+        </div>
+      </div>
+      <div class="review-actions">
+        <button class="btn btn-outline" onclick="clearReviewForm()">清空</button>
+        <button class="btn btn-primary btn-review" id="review-btn" onclick="startReview()">🚀 开始 AI 评审</button>
+      </div>
+    </div>
+    <div class="review-result-panel">
+      <div class="result-placeholder" id="result-placeholder">
+        <div class="placeholder-icon">🤖</div>
+        <div class="placeholder-title">AI 评审引擎就绪</div>
+        <div class="placeholder-desc">填写产品信息或上传文档后，点击「开始 AI 评审」，系统将生成全面的立项评审报告</div>
+        <div class="placeholder-features">
+          <div class="feature-item">✅ 多维度评审分析</div>
+          <div class="feature-item">✅ 竞品对比洞察</div>
+          <div class="feature-item">✅ 风险预警提示</div>
+          <div class="feature-item">✅ 立项建议决策</div>
+        </div>
+      </div>
+      <div class="result-loading hidden" id="result-loading">
+        <div class="loading-animation">
+          <div class="loading-brain">🧠</div>
+          <div class="loading-bars">
+            <div class="loading-bar" style="--delay:0s"></div>
+            <div class="loading-bar" style="--delay:0.2s"></div>
+            <div class="loading-bar" style="--delay:0.4s"></div>
+          </div>
+        </div>
+        <div class="loading-title">AI 正在深度分析中...</div>
+        <div class="loading-steps">
+          <div class="loading-step" id="step-parse">⏳ 解析输入内容</div>
+          <div class="loading-step" id="step-market">⏳ 分析市场机会</div>
+          <div class="loading-step" id="step-compete">⏳ 评估竞争格局</div>
+          <div class="loading-step" id="step-risk">⏳ 识别潜在风险</div>
+          <div class="loading-step" id="step-report">⏳ 生成评审报告</div>
+        </div>
+      </div>
+      <div class="result-content hidden" id="result-content">
+        <div class="result-header">
+          <div class="result-product-name" id="result-product-name"></div>
+          <div class="result-meta"><span class="result-time" id="result-time"></span><button class="btn btn-outline btn-sm" onclick="exportReport()">📥 导出报告</button><button class="btn btn-outline btn-sm" onclick="resetResult()">🔄 重新评审</button></div>
+        </div>
+        <div class="score-overview">
+          <div class="total-score-card"><div class="total-score-label">综合评分</div><div class="total-score-value" id="total-score">--</div><div class="total-score-max">/ 100</div><div class="score-verdict" id="score-verdict"></div></div>
+          <div class="score-dimensions" id="score-dimensions"></div>
+        </div>
+        <div class="decision-card" id="decision-card"><div class="decision-icon" id="decision-icon"></div><div class="decision-content"><div class="decision-title" id="decision-title"></div><div class="decision-desc" id="decision-desc"></div></div></div>
+        <div class="analysis-sections" id="analysis-sections"></div>
+        <div class="risks-section" id="risks-section"></div>
+        <div class="actions-section" id="actions-section"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+/* ===== Product Review Tool JS ===== */
+
+let currentTab = 'text';
+let uploadedFiles = [];
+let uploadedFilesBoth = [];
+
+// Tab switching
+function switchInputTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.input-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.input-section').forEach(s => s.classList.add('hidden'));
+  document.getElementById('section-' + tab).classList.remove('hidden');
+}
+
+// File helpers
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { pdf: '📕', doc: '📘', docx: '📘', xls: '📗', xlsx: '📗', txt: '📄', md: '📝' };
+  return map[ext] || '📁';
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+function renderFileList(files, listId, arr) {
+  const el = document.getElementById(listId);
+  el.innerHTML = '';
+  files.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <span class="file-icon">${getFileIcon(f.name)}</span>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-size">${formatSize(f.size)}</div>
+      </div>
+      <button class="file-remove" onclick="removeFile(${i},'${listId}','${arr}')">✕</button>
+    `;
+    el.appendChild(div);
+  });
+}
+function removeFile(idx, listId, arrName) {
+  if (arrName === 'uploadedFiles') uploadedFiles.splice(idx, 1);
+  else uploadedFilesBoth.splice(idx, 1);
+  renderFileList(arrName === 'uploadedFiles' ? uploadedFiles : uploadedFilesBoth, listId, arrName);
+}
+
+// Drag & drop
+function handleDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('dragover');
+}
+function handleDragLeave(e) {
+  e.currentTarget.classList.remove('dragover');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files);
+  uploadedFiles.push(...files);
+  renderFileList(uploadedFiles, 'file-list', 'uploadedFiles');
+}
+function handleDropBoth(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files);
+  uploadedFilesBoth.push(...files);
+  renderFileList(uploadedFilesBoth, 'file-list-both', 'uploadedFilesBoth');
+}
+function handleFileSelect(e) {
+  uploadedFiles.push(...Array.from(e.target.files));
+  renderFileList(uploadedFiles, 'file-list', 'uploadedFiles');
+  e.target.value = '';
+}
+function handleFileSelectBoth(e) {
+  uploadedFilesBoth.push(...Array.from(e.target.files));
+  renderFileList(uploadedFilesBoth, 'file-list-both', 'uploadedFilesBoth');
+  e.target.value = '';
+}
+
+// Clear form
+function clearReviewForm() {
+  ['product-name','product-desc','target-price','competitors','strategic-intent',
+   'file-extra-note','both-product-name','both-product-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const sel = document.getElementById('target-market');
+  if (sel) sel.selectedIndex = 0;
+  uploadedFiles = []; uploadedFilesBoth = [];
+  renderFileList([], 'file-list', 'uploadedFiles');
+  renderFileList([], 'file-list-both', 'uploadedFilesBoth');
+  showToast('已清空输入内容');
+}
+
+// Get selected dimensions
+function getSelectedDims() {
+  const dims = [
+    { id: 'dim-market',    label: '市场机会',   emoji: '🌐' },
+    { id: 'dim-compete',   label: '竞争格局',   emoji: '⚔️' },
+    { id: 'dim-tech',      label: '技术可行性', emoji: '⚙️' },
+    { id: 'dim-business',  label: '商业模式',   emoji: '💼' },
+    { id: 'dim-risk',      label: '风险识别',   emoji: '⚠️' },
+    { id: 'dim-resource',  label: '资源匹配',   emoji: '🔗' },
+    { id: 'dim-legal',     label: '合规法务',   emoji: '⚖️' },
+    { id: 'dim-supply',    label: '供应链',     emoji: '🏭' },
+  ];
+  return dims.filter(d => document.getElementById(d.id)?.checked);
+}
+
+// Start Review
+function startReview() {
+  // Validate
+  let productName = '';
+  if (currentTab === 'text') {
+    productName = document.getElementById('product-name').value.trim();
+    const desc = document.getElementById('product-desc').value.trim();
+    if (!productName || !desc) { showToast('请填写产品名称和产品描述', 'warn'); return; }
+  } else if (currentTab === 'file') {
+    if (uploadedFiles.length === 0) { showToast('请至少上传一个文件', 'warn'); return; }
+    productName = uploadedFiles[0].name.replace(/\.[^.]+$/, '');
+  } else {
+    productName = document.getElementById('both-product-name').value.trim();
+    const desc = document.getElementById('both-product-desc').value.trim();
+    if (!productName && uploadedFilesBoth.length === 0) { showToast('请填写产品信息或上传文档', 'warn'); return; }
+    if (!productName) productName = uploadedFilesBoth[0]?.name.replace(/\.[^.]+$/, '') || '待评审产品';
+  }
+
+  const dims = getSelectedDims();
+  if (dims.length === 0) { showToast('请至少选择一个评审维度', 'warn'); return; }
+
+  // UI: show loading
+  const btn = document.getElementById('review-btn');
+  btn.disabled = true;
+  document.getElementById('result-placeholder').classList.add('hidden');
+  document.getElementById('result-content').classList.add('hidden');
+  document.getElementById('result-loading').classList.remove('hidden');
+
+  // Simulate steps
+  const steps = ['step-parse', 'step-market', 'step-compete', 'step-risk', 'step-report'];
+  const delays = [0, 800, 1600, 2400, 3200];
+  steps.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.className = 'loading-step';
+      setTimeout(() => {
+        steps.slice(0, i).forEach(prev => { const p = document.getElementById(prev); if(p) p.className = 'loading-step done'; });
+        el.className = 'loading-step active';
+      }, delays[i]);
+    }
+  });
+
+  // Show result after delay
+  setTimeout(() => {
+    const result = generateMockResult(productName, dims, currentTab);
+    renderResult(result);
+    document.getElementById('result-loading').classList.add('hidden');
+    document.getElementById('result-content').classList.remove('hidden');
+    btn.disabled = false;
+    steps.forEach(id => { const el = document.getElementById(id); if(el) el.className = 'loading-step'; });
+    document.getElementById('step-parse').className = 'loading-step done';
+  }, 4200);
+}
+
+// Generate mock result
+function generateMockResult(name, dims, inputMode) {
+  const scores = dims.map(d => ({
+    ...d,
+    score: Math.floor(Math.random() * 30) + 60
+  }));
+  const total = Math.round(scores.reduce((s, d) => s + d.score, 0) / scores.length);
+
+  const analyses = {
+    '市场机会': '该市场规模预计达 500 亿元，近三年复合增速约 18%。目标用户画像清晰，消费意愿强，线上渗透率仍有提升空间。建议聚焦 25-40 岁中高收入城市人群作为核心突破口。<ul><li>市场规模：大（500亿+）</li><li>增长率：高（18% CAGR）</li><li>需求明确度：较高</li></ul>',
+    '竞争格局': '行业已有头部玩家占据约 60% 份额，但细分赛道仍有空白。差异化切入点需聚焦在性价比或垂直场景深耕。需特别关注头部品牌的防御性反应。<ul><li>竞争烈度：中高</li><li>差异化空间：存在</li><li>护城河难度：中等</li></ul>',
+    '技术可行性': '核心技术路线成熟，供应链可采购关键器件，无技术封锁风险。建议评估自研与外采的边界，重点关注固件与系统集成的稳定性。<ul><li>技术成熟度：高</li><li>研发周期：6-9个月</li><li>外部依赖：低</li></ul>',
+    '商业模式': '以硬件销售为主，可叠加订阅服务增加 LTV。渠道策略建议线上旗舰店 + 头部主播带货双驱动，后期布局线下体验店。<ul><li>盈利模式：硬件+服务</li><li>毛利率预估：35-45%</li><li>回本周期：18个月</li></ul>',
+    '风险识别': '主要风险来自竞品快速跟进与供应链原材料波动。需提前锁定核心供应商，并在品牌建设上加速投入以构建用户心智。',
+    '资源匹配': '现有团队技术储备与产品方向匹配度约 75%，需补充 1-2 名具备硬件量产经验的工程师。预算需求与现有资金池基本匹配，建议预留 20% 风险备用金。',
+    '合规法务': '产品涉及无线通信模块，需提前办理 3C 认证与无线电型号核准。建议同步申请相关发明专利保护核心算法。预计合规周期 3-4 个月。',
+    '供应链': '核心元器件供货稳定，有 2-3 家备选供应商可选择。建议采用 JIT 库存策略，降低滞销风险，首批量产建议控制在 5000 件以内验证市场反应。',
+  };
+
+  const risks = [
+    { level: 'high', text: '头部竞品可能在 6 个月内推出同类产品进行防御性竞争' },
+    { level: 'mid',  text: '原材料价格波动可能导致 BOM 成本上升 10-15%' },
+    { level: 'mid',  text: '认证周期延误可能影响上市时间节点' },
+    { level: 'low',  text: '市场教育成本偏高，早期获客效率需持续优化' },
+  ];
+
+  const actions = [
+    '在 2 周内完成竞品深度拆解与用户访谈（不少于 30 人），验证核心痛点假设',
+    '启动核心供应商谈判，签订意向协议锁定关键物料价格与产能',
+    '完成 MVP 原型设计并进行内部可用性测试，输出优先级需求清单',
+    '提交 3C 认证申请，同步准备专利申请材料',
+    '制定 6 个月 GTM 计划，明确首发渠道策略与 KPI 目标',
+  ];
+
+  return { name, total, scores, analyses, risks, actions, inputMode };
+}
+
+// Render result
+function renderResult(r) {
+  document.getElementById('result-product-name').textContent = '📦 ' + r.name;
+  document.getElementById('result-time').textContent = '评审时间：' + new Date().toLocaleString('zh-CN');
+
+  // Total score
+  const scoreEl = document.getElementById('total-score');
+  scoreEl.textContent = '0';
+  animateNumber(scoreEl, 0, r.total, 1000);
+
+  const verdict = document.getElementById('score-verdict');
+  if (r.total >= 75) { verdict.textContent = '建议立项'; verdict.className = 'score-verdict pass'; }
+  else if (r.total >= 60) { verdict.textContent = '有条件立项'; verdict.className = 'score-verdict watch'; }
+  else { verdict.textContent = '暂不建议立项'; verdict.className = 'score-verdict fail'; }
+
+  // Dim scores
+  const dimColors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#84cc16'];
+  const dimsEl = document.getElementById('score-dimensions');
+  dimsEl.innerHTML = r.scores.map((d, i) => `
+    <div class="dim-score">
+      <div class="dim-name">${d.emoji} ${d.label}</div>
+      <div class="dim-bar-wrap"><div class="dim-bar" id="dim-bar-${i}" style="width:0%;background:${dimColors[i % dimColors.length]}"></div></div>
+      <div       class="dim-val" id="dim-val-${i}">0</div>
+    </div>
+  `).join("");
+  setTimeout(() => {
+    r.scores.forEach((d, i) => {
+      const bar = document.getElementById("dim-bar-" + i);
+      if (bar) bar.style.width = d.score + "%";
+      const val = document.getElementById("dim-val-" + i);
+      if (val) animateNumber(val, 0, d.score, 900);
+    });
+  }, 100);
+
+
+  const card = document.getElementById('decision-card');
+  const icon = document.getElementById('decision-icon');
+  const title = document.getElementById('decision-title');
+  const desc = document.getElementById('decision-desc');
+  if (r.total >= 75) {
+    card.className = 'decision-card approve';
+    icon.textContent = '✅';
+    title.textContent = '建议立项';
+    desc.textContent = '产品综合评分优秀，市场机会明确，技术路线可行。建议正式立项并启动详细规划。';
+  } else if (r.total >= 60) {
+    card.className = 'decision-card conditional';
+    icon.textContent = '⚠️';
+    title.textContent = '有条件立项';
+    desc.textContent = '产品具备一定潜力，存在不确定性。建议完成补充验证后再决策。';
+  } else {
+    card.className = 'decision-card reject';
+    icon.textContent = '❌';
+    title.textContent = '暂不建议立项';
+    desc.textContent = '产品面临较大挑战。建议重新审视产品定位与差异化价値主张。';
+  }
+  const secEl = document.getElementById("analysis-sections");
+  const scoreColors = (s) => s >= 75 ? "#10b981" : s >= 60 ? "#f59e0b" : "#ef4444";
+  secEl.innerHTML = r.scores.map((d) => `
+    <div class="analysis-item">
+      <div class="analysis-header" onclick="toggleAnalysis(this)">
+        <div class="analysis-header-left">
+          <span class="analysis-emoji">${d.emoji}</span>
+          <span class="analysis-name">${d.label}</span>
+          <span class="analysis-score-badge" style="background:${scoreColors(d.score)}22;color:${scoreColors(d.score)}">${d.score}��</span>
+        </div>
+        <span class="analysis-toggle">��</span>
+      </div>
+      <div class="analysis-body">${r.analyses[d.label] || "������ϸ�������ݡ�"}</div>
+    </div>
+  `).join("");
+
+  document.getElementById("risks-section").innerHTML = `
+    <div class="section-title"> �ؼ�����Ԥ��</div>
+    <div class="risk-list">
+      ${r.risks.map(rk => `<div class="risk-item"><span class="risk-level ${rk.level}">${rk.level==="high"?"��":rk.level==="mid"?"��":"��"}</span><span>${rk.text}</span></div>`).join("")}
+    </div>`;
+
+  document.getElementById("actions-section").innerHTML = `
+    <div class="section-title"> ��һ���ж�����</div>
+    <div class="action-list">
+      ${r.actions.map((a,i) => `<div class="action-item"><span class="action-num">${i+1}</span><span>${a}</span></div>`).join("")}
+    </div>`;
+}
+
+function toggleAnalysis(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector(".analysis-toggle");
+  body.classList.toggle("open");
+  toggle.classList.toggle("open");
+}
+
+function animateNumber(el, from, to, duration) {
+  const start = performance.now();
+  const update = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(from + (to - from) * ease);
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+function resetResult() {
+  document.getElementById("result-content").classList.add("hidden");
+  document.getElementById("result-placeholder").classList.remove("hidden");
+}
+
+function exportReport() {
+  const name = document.getElementById('result-product-name').textContent.replace('📦 ', '');
+  const score = document.getElementById('total-score').textContent;
+  const verdict = document.getElementById('score-verdict').textContent;
+  const time = document.getElementById('result-time').textContent;
+  let text = '产品立项评审报告\n' + '='.repeat(40) + '\n';
+  text += '产品名称：' + name + '\n' + time + '\n';
+  text += '综合评分：' + score + '/100  ' + verdict + '\n\n';
+  document.querySelectorAll('.analysis-item').forEach(item => {
+    const n = item.querySelector('.analysis-name').textContent;
+    const s = item.querySelector('.analysis-score-badge').textContent;
+    const b = item.querySelector('.analysis-body').innerText.trim();
+    text += '《' + n + '》' + s + '\n' + b + '\n\n';
+  });
+  text += '关键风险\n' + '-'.repeat(20) + '\n';
+  document.querySelectorAll('.risk-item').forEach(r => { text += '• ' + r.innerText.trim() + '\n'; });
+  text += '\n下一步行动\n' + '-'.repeat(20) + '\n';
+  document.querySelectorAll('.action-item').forEach(a => { text += a.innerText.trim() + '\n'; });
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '立项评审_' + name + '_' + Date.now() + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('报告已导出');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'warn' ? ' warn' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+</script>
+</body>
+</html>
