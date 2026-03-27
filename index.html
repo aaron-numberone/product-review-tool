@@ -575,94 +575,87 @@ function getSelectedDims() {
 
 // Start Review
 function startReview() {
-  // Validate
-  let productName = '';
+  let productName = '', productInfo = '';
   if (currentTab === 'text') {
     productName = document.getElementById('product-name').value.trim();
     const desc = document.getElementById('product-desc').value.trim();
-    if (!productName || !desc) { showToast('请填写产品名称和产品描述', 'warn'); return; }
+    if (!productName || !desc) { showToast('请填写产品名称和产品描述','warn'); return; }
+    const market = document.getElementById('target-market').value;
+    const price = document.getElementById('target-price').value;
+    const comp = document.getElementById('competitors').value.trim();
+    const intent = document.getElementById('strategic-intent').value.trim();
+    productInfo = '产品名称：' + productName + '\n产品描述：' + desc;
+    if (market) productInfo += '\n目标市场：' + market;
+    if (price) productInfo += '\n预计定价：' + price + '元';
+    if (comp) productInfo += '\n主要竞品：' + comp;
+    if (intent) productInfo += '\n立项背景：' + intent;
   } else if (currentTab === 'file') {
-    if (uploadedFiles.length === 0) { showToast('请至少上传一个文件', 'warn'); return; }
-    productName = uploadedFiles[0].name.replace(/\.[^.]+$/, '');
+    if (!uploadedFiles.length) { showToast('请至少上传一个文件','warn'); return; }
+    productName = uploadedFiles[0].name.replace(/\.[^.]+$/,'');
+    const note = document.getElementById('file-extra-note').value.trim();
+    productInfo = '产品名称：' + productName + '\n文件：' + uploadedFiles.map(f=>f.name).join('、');
+    if (note) productInfo += '\n补充说明：' + note;
   } else {
     productName = document.getElementById('both-product-name').value.trim();
     const desc = document.getElementById('both-product-desc').value.trim();
-    if (!productName && uploadedFilesBoth.length === 0) { showToast('请填写产品信息或上传文档', 'warn'); return; }
-    if (!productName) productName = uploadedFilesBoth[0]?.name.replace(/\.[^.]+$/, '') || '待评审产品';
+    if (!productName && !uploadedFilesBoth.length) { showToast('请填写产品信息或上传文档','warn'); return; }
+    if (!productName) productName = (uploadedFilesBoth[0]?.name||'待评审产品').replace(/\.[^.]+$/,'');
+    productInfo = '产品名称：' + productName;
+    if (desc) productInfo += '\n产品描述：' + desc;
+    if (uploadedFilesBoth.length) productInfo += '\n附件：' + uploadedFilesBoth.map(f=>f.name).join('、');
   }
-
   const dims = getSelectedDims();
-  if (dims.length === 0) { showToast('请至少选择一个评审维度', 'warn'); return; }
-
-  // UI: show loading
+  if (!dims.length) { showToast('请至少选择一个评审维度','warn'); return; }
   const btn = document.getElementById('review-btn');
   btn.disabled = true;
   document.getElementById('result-placeholder').classList.add('hidden');
   document.getElementById('result-content').classList.add('hidden');
   document.getElementById('result-loading').classList.remove('hidden');
-
-  // Simulate steps
-  const steps = ['step-parse', 'step-market', 'step-compete', 'step-risk', 'step-report'];
-  const delays = [0, 800, 1600, 2400, 3200];
-  steps.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.className = 'loading-step';
-      setTimeout(() => {
-        steps.slice(0, i).forEach(prev => { const p = document.getElementById(prev); if(p) p.className = 'loading-step done'; });
-        el.className = 'loading-step active';
-      }, delays[i]);
-    }
-  });
-
-  // Show result after delay
-  setTimeout(() => {
-    const result = generateMockResult(productName, dims, currentTab);
+  const steps = ['step-parse','step-market','step-compete','step-risk','step-report'];
+  steps.forEach((id,i) => { setTimeout(() => { steps.forEach((s,j) => { const el=document.getElementById(s); if(!el) return; if(j<i) el.className='loading-step done'; else if(j===i) el.className='loading-step active'; else el.className='loading-step'; }); }, i*800); });
+  callDeepSeek(productName, productInfo, dims).then(result => {
     renderResult(result);
     document.getElementById('result-loading').classList.add('hidden');
     document.getElementById('result-content').classList.remove('hidden');
     btn.disabled = false;
-    steps.forEach(id => { const el = document.getElementById(id); if(el) el.className = 'loading-step'; });
-    document.getElementById('step-parse').className = 'loading-step done';
-  }, 4200);
+    steps.forEach(id => { const el=document.getElementById(id); if(el) el.className='loading-step done'; });
+  }).catch(err => {
+    document.getElementById('result-loading').classList.add('hidden');
+    document.getElementById('result-placeholder').classList.remove('hidden');
+    btn.disabled = false;
+    showToast('AI 分析失败：' + err.message, 'warn');
+  });
 }
 
-// Generate mock result
-function generateMockResult(name, dims, inputMode) {
-  const scores = dims.map(d => ({
-    ...d,
-    score: Math.floor(Math.random() * 30) + 60
-  }));
-  const total = Math.round(scores.reduce((s, d) => s + d.score, 0) / scores.length);
-
-  const analyses = {
-    '市场机会': '该市场规模预计达 500 亿元，近三年复合增速约 18%。目标用户画像清晰，消费意愿强，线上渗透率仍有提升空间。建议聚焦 25-40 岁中高收入城市人群作为核心突破口。<ul><li>市场规模：大（500亿+）</li><li>增长率：高（18% CAGR）</li><li>需求明确度：较高</li></ul>',
-    '竞争格局': '行业已有头部玩家占据约 60% 份额，但细分赛道仍有空白。差异化切入点需聚焦在性价比或垂直场景深耕。需特别关注头部品牌的防御性反应。<ul><li>竞争烈度：中高</li><li>差异化空间：存在</li><li>护城河难度：中等</li></ul>',
-    '技术可行性': '核心技术路线成熟，供应链可采购关键器件，无技术封锁风险。建议评估自研与外采的边界，重点关注固件与系统集成的稳定性。<ul><li>技术成熟度：高</li><li>研发周期：6-9个月</li><li>外部依赖：低</li></ul>',
-    '商业模式': '以硬件销售为主，可叠加订阅服务增加 LTV。渠道策略建议线上旗舰店 + 头部主播带货双驱动，后期布局线下体验店。<ul><li>盈利模式：硬件+服务</li><li>毛利率预估：35-45%</li><li>回本周期：18个月</li></ul>',
-    '风险识别': '主要风险来自竞品快速跟进与供应链原材料波动。需提前锁定核心供应商，并在品牌建设上加速投入以构建用户心智。',
-    '资源匹配': '现有团队技术储备与产品方向匹配度约 75%，需补充 1-2 名具备硬件量产经验的工程师。预算需求与现有资金池基本匹配，建议预留 20% 风险备用金。',
-    '合规法务': '产品涉及无线通信模块，需提前办理 3C 认证与无线电型号核准。建议同步申请相关发明专利保护核心算法。预计合规周期 3-4 个月。',
-    '供应链': '核心元器件供货稳定，有 2-3 家备选供应商可选择。建议采用 JIT 库存策略，降低滞销风险，首批量产建议控制在 5000 件以内验证市场反应。',
-  };
-
-  const risks = [
-    { level: 'high', text: '头部竞品可能在 6 个月内推出同类产品进行防御性竞争' },
-    { level: 'mid',  text: '原材料价格波动可能导致 BOM 成本上升 10-15%' },
-    { level: 'mid',  text: '认证周期延误可能影响上市时间节点' },
-    { level: 'low',  text: '市场教育成本偏高，早期获客效率需持续优化' },
-  ];
-
-  const actions = [
-    '在 2 周内完成竞品深度拆解与用户访谈（不少于 30 人），验证核心痛点假设',
-    '启动核心供应商谈判，签订意向协议锁定关键物料价格与产能',
-    '完成 MVP 原型设计并进行内部可用性测试，输出优先级需求清单',
-    '提交 3C 认证申请，同步准备专利申请材料',
-    '制定 6 个月 GTM 计划，明确首发渠道策略与 KPI 目标',
-  ];
-
-  return { name, total, scores, analyses, risks, actions, inputMode };
+async function callDeepSeek(productName, productInfo, dims) {
+  const APIKEY = 'sk-71ff010d157e4145977a055174459d0d';
+  const dimNames = dims.map(d => d.label).join('、');
+  const dimEmoji = {};
+  dims.forEach(d => dimEmoji[d.label] = d.emoji);
+  const prompt = '你是一位资深产品经理和商业分析师。以下是一个产品立项申请，请进行全面评审。\n\n产品信息：\n' + productInfo + '\n\n请对以下维度进行评审：' + dimNames + '\n\n必须以 JSON 格式返回（不要返回其他内容）：\n{\n  "total": <综合评分 0-100>,\n  "scores": [{"label": "维度名", "score": <0-100>, "emoji": "对应emoji"}],\n  "analyses": {"维度名": "详细分析文字（200字内，可含HTML ul/li列表）"},\n  "risks": [{"level": "high/mid/low", "text": "风险描述"}],\n  "actions": ["行动建议1","行动建议2","行动建议3","行动建议4","行动建议5"]\n}\n\n评分标准：75分以上建议立项，60-74分有条件立项，60分以下暂不建议。请根据实际产品信息给出真实、专业的评审意见。';
+  const resp = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + APIKEY },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      response_format: { type: 'json_object' }
+    })
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error('API错误 ' + resp.status + ': ' + errText.slice(0,100));
+  }
+  const data = await resp.json();
+  const raw = JSON.parse(data.choices[0].message.content);
+  raw.scores = raw.scores.map(s => ({ ...s, emoji: dimEmoji[s.label] || s.emoji || '📊' }));
+  raw.name = productName;
+  if (!raw.risks) raw.risks = [];
+  if (!raw.actions) raw.actions = [];
+  return raw;
 }
+
 
 // Render result
 function renderResult(r) {
